@@ -13,6 +13,7 @@ find_package(OpenGL REQUIRED)
 find_package(Qt5 COMPONENTS Core Gui Widgets OpenGL REQUIRED)
 
 include_directories(${CMAKE_SOURCE_DIR}/src
+ ${CMAKE_SOURCE_DIR}/OceanSurface
  ${Qt5Core_INCLUDE_DIRS}
  ${Qt5Gui_INCLUDE_DIRS}
  ${Qt5Widgets_INCLUDE_DIRS}
@@ -22,6 +23,8 @@ include_directories(${CMAKE_SOURCE_DIR}/src
  ${CMAKE_BINARY_DIR})
 
 add_executable(FFTWater
+  ${CMAKE_SOURCE_DIR}/OceanSurface/Vec2f.cpp
+  ${CMAKE_SOURCE_DIR}/OceanSurface/OceanSurface.cpp
   ${CMAKE_SOURCE_DIR}/src/DialogParameters.ui
   ${CMAKE_SOURCE_DIR}/src/waterfftvisu.ui
   ${CMAKE_SOURCE_DIR}/src/waterfftvisu.qrc

@@ -12,6 +12,8 @@
 #include <fftw3.h>
 #include <complex>
 #include "camera.h"
+#include "OceanSurface.h"
+#include <vector>
 
 #include "ui_waterfftvisu.h"
 #include "ui_DialogParameters.h"
@@ -106,19 +108,14 @@ private:
 
   GLuint cubeMap;
 
-  void heightfieldComputationPrecalc();
   void updateHeightfield();
-  //phillips spectrum computing function
-  //used define constant to compute the pillip spectrum
-  float ph_spectrum(QVector2D waveVector, float normWaveVector);
-  QVector2D getWaveVector(unsigned int x, unsigned int z);
-  complex<float> compute_h0tilde(QVector2D waveVector, float normWaveVector, float random_r, float random_i);
-  complex<float> conjuguate(complex<float> in);
 
   void buildGrid();
   void renderGrid(GLuint positionLocation,GLuint texCoordLocation, QGLShaderProgram *program);
   GLuint createFrameBufferObject(GLuint nbTextures, GLuint * textureToAttachID, GLint textureWidth, GLint textureHeight, GLenum * attachment);
   void buildCubeMap(QString xpos,QString xneg,QString ypos,QString yneg,QString zpos,QString zneg);
+
+  OceanSurface surf;
 
 protected:
   void initializeGL();

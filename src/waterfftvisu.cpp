@@ -2,6 +2,7 @@
 
 #include "ui_waterfftvisu.h"
 #include "ui_DialogParameters.h"
+#include <iostream>
 
 waterFFTvisu::waterFFTvisu(QWidget *parent)
   : QGLWidget(parent,0)
@@ -10,19 +11,6 @@ waterFFTvisu::waterFFTvisu(QWidget *parent)
   this->resize(1280,720);
   setMouseTracking(true);
   freeCamera = true;
-  //initializing vectors
-  waveVectorLength = new float[WIDTH*HEIGHT];
-  waveFrequency = new float[WIDTH*HEIGHT];
-  h0_tilde = new complex<float>[WIDTH*HEIGHT];
-  h0_tilde2 = new complex<float>[WIDTH*HEIGHT];
-  waveVector = new QVector2D[WIDTH*HEIGHT];
-
-  heightmapData = new GLfloat[WIDTH * HEIGHT];
-  displacementX = new GLfloat[WIDTH * HEIGHT];
-  displacementZ = new GLfloat[WIDTH * HEIGHT];
-
-  normalX = new GLfloat[WIDTH * HEIGHT];
-  normalZ = new GLfloat[WIDTH * HEIGHT];
 
   t = 0.0;
 
@@ -40,31 +28,14 @@ waterFFTvisu::waterFFTvisu(QWidget *parent)
   GRAVIT_CST = 9.81;
   DISPLACE_LAMBDA = 0.8;
 
-  //set the default values in the parameters dialog box
-  dialog_parameters.HFieldSpinBox->setMaximum(1000.0);
-  dialog_parameters.HFieldSpinBox->setValue(HFIELD_SIZE);
-
-  dialog_parameters.WindXSpinBox->setMaximum(1000.0);
-  dialog_parameters.WindXSpinBox->setDecimals(4.0);
-  dialog_parameters.WindXSpinBox->setValue(WINDX);
-
-  dialog_parameters.WindZSpinBox->setMaximum(1000.0);
-  dialog_parameters.WindZSpinBox->setDecimals(4.0);
-  dialog_parameters.WindZSpinBox->setValue(WINDZ);
-
-  dialog_parameters.WaveHFFactorSpinBox->setDecimals(6.0);
-  dialog_parameters.WaveHFFactorSpinBox->setSingleStep(0.001);
-  dialog_parameters.WaveHFFactorSpinBox->setValue(WAVEHEIGHTFACTOR);
-
-  dialog_parameters.GravitCstSpinBox->setDecimals(4.0);
-  dialog_parameters.GravitCstSpinBox->setValue(GRAVIT_CST);
-
-  dialog_parameters.LmbdaDispSpinBox->setDecimals(4.0);
-  dialog_parameters.LmbdaDispSpinBox->setValue(DISPLACE_LAMBDA);
-
-
-
-  heightfieldComputationPrecalc();
+  std::vector<float> randr;
+  std::vector<float> randi;
+  for(int i=0; i < WIDTH*HEIGHT; ++i)
+  {
+    randr.push_back(randn_trig(0.0,1.0));
+    randi.push_back(randn_trig(0.0,1.0));
+  }
+  surf.PrecomputeFields(randr, randi);
 
   connect(this->dialog_parameters.pushButton,SIGNAL(pressed()),this,SLOT(update_parameters()));
   connect(this->dialog_parameters.HFieldSpinBox,SIGNAL(valueChanged(double)),this,SLOT(update_parameters()));
@@ -79,16 +50,6 @@ waterFFTvisu::waterFFTvisu(QWidget *parent)
 
 waterFFTvisu::~waterFFTvisu()
 {
-  delete waveVectorLength;
-  delete waveFrequency;
-  delete h0_tilde;
-  delete h0_tilde2;
-  delete waveVector;
-
-  delete heightmapData;
-  delete displacementX;
-  delete displacementZ;
-
   delete cam;
 }
 
@@ -132,6 +93,7 @@ void waterFFTvisu::initializeGL()
   nZ = createTexture(WIDTH , HEIGHT, 0,GL_R16F,GL_RED,GL_FLOAT,0);
 
   buildScreenQuad();
+  surf.ComputeHeightmap(t);
   updateHeightfield();
   buildGrid();
 
@@ -233,6 +195,8 @@ void waterFFTvisu::paintGL()
 
   drawScreenQuad(vertexLocation,texCoordLocation);
 
+  surf.ComputeHeightmap(t);
+
   updateHeightfield();
 
   //Should not do this
@@ -248,8 +212,15 @@ void waterFFTvisu::update_parameters()
   GRAVIT_CST = dialog_parameters.GravitCstSpinBox->value();
   DISPLACE_LAMBDA = dialog_parameters.LmbdaDispSpinBox->value();
 
+  std::vector<float> randr;
+  std::vector<float> randi;
   //re compute the precalculation for the heightfield
-  heightfieldComputationPrecalc();
+  for(int i=0; i < WIDTH*HEIGHT; ++i)
+  {
+    randr.push_back(randn_trig(0.0,1.0));
+    randi.push_back(randn_trig(0.0,1.0));
+  }
+  surf.PrecomputeFields(randr, randi);
 }
 
 QGLShaderProgram * waterFFTvisu::loadShaders(QString vertexFile, QString fragmentFile)
@@ -343,189 +314,29 @@ GLuint waterFFTvisu::createTexture(GLint width, GLint height, void *texture, GLi
   return localTextureID;
 }
 
-void waterFFTvisu::heightfieldComputationPrecalc()
-{
-    //precalc for tessendorf
-  for(int i=0 ;i  < WIDTH; i++)
-  {
-    for(int j= 0; j < HEIGHT; j++)
-    {
-      waveVector[WIDTH*j + i] = getWaveVector(i,j);
-      waveVectorLength[WIDTH*j + i] = waveVector[WIDTH*j + i].length();
-      if(waveVectorLength[WIDTH*j + i] < 0.1)
-        waveFrequency[WIDTH*j + i] = 0.0;
-      else
-        waveFrequency[WIDTH*j + i] = sqrt(GRAVIT_CST * waveVectorLength[WIDTH*j + i]);
-      float random_r = randn_trig(0.0,1.0);
-      float random_i = randn_trig(0.0,1.0);
-      h0_tilde[WIDTH*j + i] = compute_h0tilde(waveVector[WIDTH*j + i] ,waveVectorLength[WIDTH*j + i],random_r,random_i);
-      h0_tilde2[WIDTH*j + i] = conjuguate(compute_h0tilde(-waveVector[WIDTH*j + i] ,waveVectorLength[WIDTH*j + i],random_r,random_i));
-    }
-  }
-
-}
-
 //Update the heigtfield by generating a new Heightfield with FFT
 void waterFFTvisu::updateHeightfield()
 {
-  //FFT
-
-  //heightfield
-  fftw_complex *in, *out;
-  fftw_plan p;
-
-  //displacement
-  fftw_complex *inDx, *outDx;
-  fftw_complex *inDz, *outDz;
-  fftw_plan pDx;
-  fftw_plan pDz;
-
-  //normals
-  fftw_complex *inNx, *outNx;
-  fftw_complex *inNz, *outNz;
-  fftw_plan pNx;
-  fftw_plan pNz;
-
-  //heightfield
-  in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * WIDTH * HEIGHT);
-    out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * WIDTH * HEIGHT);
-
-  //Displacement X for choppy waves
-  inDx = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * WIDTH * HEIGHT);
-    outDx = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * WIDTH * HEIGHT);
-
-  //Displacecement Z for choppy waves
-  inDz = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * WIDTH * HEIGHT);
-    outDz = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * WIDTH * HEIGHT);
-
-  //X normal
-  inNx = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * WIDTH * HEIGHT);
-    outNx = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * WIDTH * HEIGHT);
-
-  //Z normal
-  inNz = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * WIDTH * HEIGHT);
-    outNz = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * WIDTH * HEIGHT);
-
-  //Prepare the plan for fft
-
-    p = fftw_plan_dft_2d(WIDTH , HEIGHT, in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
-
-  pDx = fftw_plan_dft_2d(WIDTH , HEIGHT, inDx, outDx, FFTW_BACKWARD, FFTW_ESTIMATE);
-
-  pDz = fftw_plan_dft_2d(WIDTH , HEIGHT, inDz, outDz, FFTW_BACKWARD, FFTW_ESTIMATE);
-
-  pNx = fftw_plan_dft_2d(WIDTH , HEIGHT, inNx, outNx, FFTW_BACKWARD, FFTW_ESTIMATE);
-
-  pNz = fftw_plan_dft_2d(WIDTH , HEIGHT, inNz, outNz, FFTW_BACKWARD, FFTW_ESTIMATE);
-
-  // in data for FFT
-  for(int i = 0; i < WIDTH * HEIGHT; i++)
-  {
-    complex<float> e1(cos(waveFrequency[i]*t),sin(waveFrequency[i]*t));
-    complex<float> e2 = conjuguate(e1);
-    float k_dot_x = QVector2D::dotProduct(waveVector[i].normalized(),QVector2D(i%WIDTH,i/WIDTH).normalized());
-    complex<float> h_tilde = (h0_tilde[i] * e1 + h0_tilde2[i] * e2)*k_dot_x;
-
-    complex<float> h_tiled_slopex = h_tilde* complex<float>(0.0,waveVector[i].x());
-    complex<float> h_tiled_slopez = h_tilde* complex<float>(0.0,waveVector[i].y());
-
-
-    complex<float> h_tiled_displacex;
-    complex<float> h_tiled_displacez;
-
-    if(waveVectorLength[i] >0.0001)
-    {
-      h_tiled_displacex = h_tilde* complex<float>(0.0,-waveVector[i].x() / waveVectorLength[i]);
-      h_tiled_displacez = h_tilde* complex<float>(0.0,-waveVector[i].y() / waveVectorLength[i]);
-    }
-    else
-    {
-      h_tiled_displacex = h_tilde* complex<float>(0.0,0.0);
-      h_tiled_displacez = h_tilde* complex<float>(0.0,0.0);
-    }
-
-    in[i][0] = h_tilde.real();
-    in[i][1] = h_tilde.imag();
-
-    inDx[i][0] = h_tiled_displacex.real();
-    inDx[i][1] = h_tiled_displacez.imag();
-
-    inDz[i][0] = h_tiled_displacex.real();
-    inDz[i][1] = h_tiled_displacez.imag();
-
-    inNx[i][0] = h_tiled_slopex.real();
-    inNx[i][1] = h_tiled_slopex.imag();
-
-    inNz[i][0] = h_tiled_slopez.real();
-    inNz[i][1] = h_tiled_slopez.imag();
-  }
-
-  //FFTs!!
-    fftw_execute(p);
-  fftw_execute(pDx);
-  fftw_execute(pDz);
-  fftw_execute(pNx);
-  fftw_execute(pNz);
-
-  int signs[] = {1, -1};
-
-  //out data from FFT
-  for(int i = 0; i < WIDTH * HEIGHT; i++)
-  {
-    int x = i% WIDTH;
-    int z = i/HEIGHT;
-    int sign = signs[(x + z) & 1];
-
-    heightmapData[i] =  sign* out[i][0];
-    displacementX[i] = sign*DISPLACE_LAMBDA*outDx[i][0];
-    displacementZ[i] = sign*DISPLACE_LAMBDA*outDz[i][0];
-    normalX[i] = sign*outNx[i][0];
-    normalZ[i] = sign*outNz[i][0];
-  }
-
   //Update the textures
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D,heightmap);
-  glTexSubImage2D(GL_TEXTURE_2D,0,0,0,WIDTH,HEIGHT,GL_RED,GL_FLOAT,heightmapData);
+  glTexSubImage2D(GL_TEXTURE_2D,0,0,0,WIDTH,HEIGHT,GL_RED,GL_FLOAT,surf.m_heightmapData);
 
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_2D,dispX);
-  glTexSubImage2D(GL_TEXTURE_2D,0,0,0,WIDTH,HEIGHT,GL_RED,GL_FLOAT,displacementX);
+  glTexSubImage2D(GL_TEXTURE_2D,0,0,0,WIDTH,HEIGHT,GL_RED,GL_FLOAT,surf.m_displacementX);
 
   glActiveTexture(GL_TEXTURE2);
   glBindTexture(GL_TEXTURE_2D,dispZ);
-  glTexSubImage2D(GL_TEXTURE_2D,0,0,0,WIDTH,HEIGHT,GL_RED,GL_FLOAT,displacementZ);
+  glTexSubImage2D(GL_TEXTURE_2D,0,0,0,WIDTH,HEIGHT,GL_RED,GL_FLOAT,surf.m_displacementZ);
 
   glActiveTexture(GL_TEXTURE3);
   glBindTexture(GL_TEXTURE_2D,nX);
-  glTexSubImage2D(GL_TEXTURE_2D,0,0,0,WIDTH,HEIGHT,GL_RED,GL_FLOAT,normalX);
+  glTexSubImage2D(GL_TEXTURE_2D,0,0,0,WIDTH,HEIGHT,GL_RED,GL_FLOAT,surf.m_normalX);
 
   glActiveTexture(GL_TEXTURE4);
   glBindTexture(GL_TEXTURE_2D,nZ);
-  glTexSubImage2D(GL_TEXTURE_2D,0,0,0,WIDTH,HEIGHT,GL_RED,GL_FLOAT,normalZ);
-
-
-  //Destroy the plans
-  fftw_destroy_plan(p);
-  fftw_free(in);
-  fftw_free(out);
-
-  fftw_destroy_plan(pDx);
-  fftw_free(inDx);
-  fftw_free(outDx);
-
-  fftw_destroy_plan(pDz);
-  fftw_free(inDz);
-  fftw_free(outDz);
-
-  fftw_destroy_plan(pNx);
-  fftw_free(inNx);
-  fftw_free(outNx);
-
-  fftw_destroy_plan(pNz);
-  fftw_free(inNz);
-  fftw_free(outNz);
-
+  glTexSubImage2D(GL_TEXTURE_2D,0,0,0,WIDTH,HEIGHT,GL_RED,GL_FLOAT,surf.m_normalZ);
 
 }
 
@@ -550,54 +361,6 @@ void waterFFTvisu::loadTexture(QString textureName,GLuint *textureUnit, bool wra
   glEnable(GL_TEXTURE_2D);
   glGenerateMipmapEXT(GL_TEXTURE_2D);
   delete qim_Texture;
-}
-
-//Compute the philips spectrum
-float waterFFTvisu::ph_spectrum(QVector2D waveVector, float normWaveVector)
-{
-  QVector2D windVector(WINDX,WINDZ);
-  float windSpeed = windVector.length();
-  windVector.normalize();
-  waveVector.normalize();
-
-  if(normWaveVector < 0.1)
-    return 0;
-  float L = (windSpeed * windSpeed) / GRAVIT_CST; // L
-  float e = exp(-1.0 / pow(normWaveVector*L,2)); // exp part
-  float k4 = normWaveVector*normWaveVector*normWaveVector*normWaveVector;
-  float k_dot_w = pow(QVector2D::dotProduct(waveVector,windVector),2);
-
-  float l = HFIELD_SIZE/100.0;
-
-  return WAVEHEIGHTFACTOR * ( e / k4) * k_dot_w /*exp(-normWaveVector*normWaveVector*l*l)*/;
-}
-
-//Waves Vector from x,z position on the texture
-QVector2D waterFFTvisu::getWaveVector(unsigned int x, unsigned int z)
-{
-  int m,n;
-  m = (int)x - (WIDTH/2.0);
-  n = (int)z - (HEIGHT/2.0);
-  float lx = HFIELD_SIZE;
-  float lz = HFIELD_SIZE;
-
-  return QVector2D( (2*M_PI * m) / lx, (2*M_PI * n) / lz );
-
-}
-
-//h0tilde function
-complex<float> waterFFTvisu::compute_h0tilde(QVector2D waveVector,float normWaveVector, float random_r, float random_i)
-{
-  float real = (1.0 / sqrt(2.0) ) * random_r * sqrt(ph_spectrum(waveVector,normWaveVector));
-  float img = (1.0 / sqrt(2.0) ) * random_i * sqrt(ph_spectrum(waveVector,normWaveVector));
-
-  return complex<float>(real,img);
-}
-
-//conjuguate of a complex number
-complex<float> waterFFTvisu::conjuguate(complex<float> in)
-{
-  return complex<float>(in.real(),-in.imag());
 }
 
 //build the support grid
