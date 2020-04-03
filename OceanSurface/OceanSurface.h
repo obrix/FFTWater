@@ -14,7 +14,7 @@ public:
 
   ~OceanSurface();
 
-  void PrecomputeFields(std::vector<float>& randr, std::vector<float>& randi);
+  void PrecomputeFields();
 
   void ComputeHeightmap(float t);
 

@@ -22,9 +22,12 @@ include_directories(${CMAKE_SOURCE_DIR}/src
  ${GLEW_INCLUDE_DIR}
  ${CMAKE_BINARY_DIR})
 
-add_executable(FFTWater
+add_library(OceanSurface SHARED
   ${CMAKE_SOURCE_DIR}/OceanSurface/Vec2f.cpp
   ${CMAKE_SOURCE_DIR}/OceanSurface/OceanSurface.cpp
+)
+
+add_executable(FFTWater
   ${CMAKE_SOURCE_DIR}/src/DialogParameters.ui
   ${CMAKE_SOURCE_DIR}/src/waterfftvisu.ui
   ${CMAKE_SOURCE_DIR}/src/waterfftvisu.qrc
@@ -41,12 +44,7 @@ target_link_libraries(FFTWater
   ${FFTW3_LIBRARY}
   ${GLEW_LIBRARY}
   ${OPENGL_gl_LIBRARY}
-  ${OPENGL_glu_LIBRARY})
+  ${OPENGL_glu_LIBRARY}
+  OceanSurface)
 
 file(COPY ${CMAKE_SOURCE_DIR}/Resources DESTINATION ${CMAKE_BINARY_DIR})
-
-message("Qt5 core libraries " ${Qt5Core_LIBRARIES})
-message("Qt5 core libraries " ${Qt5Core_INCLUDE_DIRS})
-message("Opengl lib " ${OPENGL_gl_LIBRARY})
-message("Opengl glu lib " ${OPENGL_glu_LIBRARY})
-message("QT5 Ui sources " ${SOURCES})

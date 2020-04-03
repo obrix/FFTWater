@@ -40,8 +40,12 @@ OceanSurface::~OceanSurface()
   delete[] m_displacementZ;
 }
 
-void OceanSurface::PrecomputeFields(std::vector<float>& randr, std::vector<float>& randi)
+void OceanSurface::PrecomputeFields()
 {
+  std::random_device rd{};
+  std::mt19937 gen{rd()};
+  std::normal_distribution<> d{0,1};
+
   for(unsigned i=0 ;i  < m_dwidth; i++)
   {
     for(unsigned j= 0; j < m_dheight; j++)
@@ -56,8 +60,8 @@ void OceanSurface::PrecomputeFields(std::vector<float>& randr, std::vector<float
       {
         m_iFields.waveFrequency[m_dwidth*j + i] = sqrt(m_gravit_cst * m_iFields.waveVectorLength[m_dwidth*j + i]);
       }
-      float random_r = randr[m_dwidth*j + i];
-      float random_i = randi[m_dwidth*j + i];
+      float random_r = d(gen);
+      float random_i = d(gen);
       m_iFields.h0_tilde[m_dwidth*j + i] = compute_h0tilde(m_iFields.waveVector[m_dwidth*j + i] ,m_iFields.waveVectorLength[m_dwidth*j + i],random_r,random_i);
       m_iFields.h0_tilde2[m_dwidth*j + i] = conjuguate(compute_h0tilde(-m_iFields.waveVector[m_dwidth*j + i] ,m_iFields.waveVectorLength[m_dwidth*j + i],random_r,random_i));
     }

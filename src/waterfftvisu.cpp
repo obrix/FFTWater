@@ -3,6 +3,7 @@
 #include "ui_waterfftvisu.h"
 #include "ui_DialogParameters.h"
 #include <iostream>
+#include <random>
 
 waterFFTvisu::waterFFTvisu(QWidget *parent)
   : QGLWidget(parent,0)
@@ -28,14 +29,7 @@ waterFFTvisu::waterFFTvisu(QWidget *parent)
   GRAVIT_CST = 9.81;
   DISPLACE_LAMBDA = 0.8;
 
-  std::vector<float> randr;
-  std::vector<float> randi;
-  for(int i=0; i < WIDTH*HEIGHT; ++i)
-  {
-    randr.push_back(randn_trig(0.0,1.0));
-    randi.push_back(randn_trig(0.0,1.0));
-  }
-  surf.PrecomputeFields(randr, randi);
+  surf.PrecomputeFields();
 
   connect(this->dialog_parameters.pushButton,SIGNAL(pressed()),this,SLOT(update_parameters()));
   connect(this->dialog_parameters.HFieldSpinBox,SIGNAL(valueChanged(double)),this,SLOT(update_parameters()));
@@ -212,15 +206,7 @@ void waterFFTvisu::update_parameters()
   GRAVIT_CST = dialog_parameters.GravitCstSpinBox->value();
   DISPLACE_LAMBDA = dialog_parameters.LmbdaDispSpinBox->value();
 
-  std::vector<float> randr;
-  std::vector<float> randi;
-  //re compute the precalculation for the heightfield
-  for(int i=0; i < WIDTH*HEIGHT; ++i)
-  {
-    randr.push_back(randn_trig(0.0,1.0));
-    randi.push_back(randn_trig(0.0,1.0));
-  }
-  surf.PrecomputeFields(randr, randi);
+  surf.PrecomputeFields();
 }
 
 QGLShaderProgram * waterFFTvisu::loadShaders(QString vertexFile, QString fragmentFile)
