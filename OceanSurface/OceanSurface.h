@@ -3,8 +3,11 @@
 
 #include <math.h>
 #include <complex>
-#include "Vec2f.h"
 #include <vector>
+#include "Vec2f.h"
+
+namespace rx
+{
 
 class OceanSurface
 {
@@ -18,7 +21,7 @@ public:
 
   void ComputeHeightmap(float t);
 
-  typedef std::complex<float> Complex;
+  typedef std::complex<float> ComplexN;
 
   struct InitialFields
   {
@@ -27,18 +30,18 @@ public:
     Vec2f* waveVector;
 
     // h~0(k) amplitude and phase computed with phillips spectrum
-    Complex* h0_tilde;
-    Complex* h0_tilde2;
+    ComplexN* h0_tilde;
+    ComplexN* h0_tilde2;
 
     //field of frequency amplitude
     //h(k,t) = h~0(k) * exp(i*w(k)*t) + h~0(-k) * exp(-i*w(k)*t)
-    Complex* h;
+    ComplexN* h;
   };
 
   float ph_spectrum(Vec2f waveVector, float normWaveVector);
   Vec2f getWaveVector(unsigned int x, unsigned int z);
-  Complex compute_h0tilde(Vec2f const& waveVector, float normWaveVector, float random_r, float random_i);
-  Complex conjuguate(Complex in);
+  ComplexN compute_h0tilde(Vec2f const& waveVector, float normWaveVector, float random_r, float random_i);
+  ComplexN conjuguate(ComplexN in);
 
   //Discrete width and height
   unsigned m_dwidth;
@@ -59,5 +62,7 @@ public:
 
   InitialFields m_iFields;
 };
+
+}
 
 #endif

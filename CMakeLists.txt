@@ -27,6 +27,10 @@ add_library(OceanSurface SHARED
   ${CMAKE_SOURCE_DIR}/OceanSurface/OceanSurface.cpp
 )
 
+target_link_libraries(OceanSurface
+  ${FFTW3_LIBRARY}
+)
+
 add_executable(FFTWater
   ${CMAKE_SOURCE_DIR}/src/DialogParameters.ui
   ${CMAKE_SOURCE_DIR}/src/waterfftvisu.ui
@@ -41,7 +45,6 @@ target_link_libraries(FFTWater
   ${Qt5Gui_LIBRARIES}
   ${Qt5Widgets_LIBRARIES}
   ${Qt5OpenGL_LIBRARIES}
-  ${FFTW3_LIBRARY}
   ${GLEW_LIBRARY}
   ${OPENGL_gl_LIBRARY}
   ${OPENGL_glu_LIBRARY}

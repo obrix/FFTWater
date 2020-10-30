@@ -3,6 +3,9 @@
 #include <fftw3.h>
 #include <iostream>
 
+namespace rx
+{
+
 OceanSurface::OceanSurface():
   m_dwidth(128),
   m_dheight(128),
@@ -15,8 +18,8 @@ OceanSurface::OceanSurface():
 {
   m_iFields.waveVectorLength = new float[m_dwidth * m_dheight];
   m_iFields.waveFrequency = new float[m_dwidth * m_dheight];
-  m_iFields.h0_tilde = new Complex[m_dwidth * m_dheight];
-  m_iFields.h0_tilde2 = new Complex[m_dwidth * m_dheight];
+  m_iFields.h0_tilde = new ComplexN[m_dwidth * m_dheight];
+  m_iFields.h0_tilde2 = new ComplexN[m_dwidth * m_dheight];
   m_iFields.waveVector = new Vec2f[m_dwidth * m_dheight];
 
   m_heightmapData = new float[m_dwidth * m_dheight];
@@ -123,27 +126,27 @@ void OceanSurface::ComputeHeightmap(float t)
   // in data for FFT
   for(int i = 0; i < m_dwidth * m_dheight; i++)
   {
-    Complex e1(cos(m_iFields.waveFrequency[i]*t),sin(m_iFields.waveFrequency[i]*t));
-    Complex e2 = conjuguate(e1);
+    ComplexN e1(cos(m_iFields.waveFrequency[i]*t),sin(m_iFields.waveFrequency[i]*t));
+    ComplexN e2 = conjuguate(e1);
     float k_dot_x = Vec2f::dot(m_iFields.waveVector[i].normalized(), Vec2f(i%m_dwidth,i/m_dwidth).normalized());
-    Complex h_tilde = (m_iFields.h0_tilde[i] * e1 + m_iFields.h0_tilde2[i] * e2)*k_dot_x;
+    ComplexN h_tilde = (m_iFields.h0_tilde[i] * e1 + m_iFields.h0_tilde2[i] * e2)*k_dot_x;
 
-    Complex h_tiled_slopex = h_tilde* Complex(0.0,m_iFields.waveVector[i].x);
-    Complex h_tiled_slopez = h_tilde* Complex(0.0,m_iFields.waveVector[i].y);
+    ComplexN h_tiled_slopex = h_tilde* ComplexN(0.0,m_iFields.waveVector[i].x);
+    ComplexN h_tiled_slopez = h_tilde* ComplexN(0.0,m_iFields.waveVector[i].y);
 
 
-    Complex h_tiled_displacex;
-    Complex h_tiled_displacez;
+    ComplexN h_tiled_displacex;
+    ComplexN h_tiled_displacez;
 
     if(m_iFields.waveVectorLength[i] >0.0001)
     {
-      h_tiled_displacex = h_tilde* Complex(0.0,-m_iFields.waveVector[i].x / m_iFields.waveVectorLength[i]);
-      h_tiled_displacez = h_tilde* Complex(0.0,-m_iFields.waveVector[i].y / m_iFields.waveVectorLength[i]);
+      h_tiled_displacex = h_tilde* ComplexN(0.0,-m_iFields.waveVector[i].x / m_iFields.waveVectorLength[i]);
+      h_tiled_displacez = h_tilde* ComplexN(0.0,-m_iFields.waveVector[i].y / m_iFields.waveVectorLength[i]);
     }
     else
     {
-      h_tiled_displacex = h_tilde* Complex(0.0,0.0);
-      h_tiled_displacez = h_tilde* Complex(0.0,0.0);
+      h_tiled_displacex = h_tilde* ComplexN(0.0,0.0);
+      h_tiled_displacez = h_tilde* ComplexN(0.0,0.0);
     }
 
     in[i][0] = h_tilde.real();
@@ -207,18 +210,18 @@ void OceanSurface::ComputeHeightmap(float t)
   fftw_free(outNz);
 }
 
-OceanSurface::Complex OceanSurface::compute_h0tilde(Vec2f const& waveVector, float normWaveVector, float random_r, float random_i)
+OceanSurface::ComplexN OceanSurface::compute_h0tilde(Vec2f const& waveVector, float normWaveVector, float random_r, float random_i)
 {
   float real = (1.0 / sqrt(2.0) ) * random_r * sqrt(ph_spectrum(waveVector,normWaveVector));
   float img = (1.0 / sqrt(2.0) ) * random_i * sqrt(ph_spectrum(waveVector,normWaveVector));
 
-  return Complex(real,img);
+  return ComplexN(real,img);
 }
 
 //conjuguate of a complex number
-OceanSurface::Complex OceanSurface::conjuguate(Complex in)
+OceanSurface::ComplexN OceanSurface::conjuguate(ComplexN in)
 {
-  return Complex(in.real(),-in.imag());
+  return ComplexN(in.real(),-in.imag());
 }
 
 float OceanSurface::ph_spectrum(Vec2f waveVector, float normWaveVector)
@@ -249,4 +252,6 @@ Vec2f OceanSurface::getWaveVector(unsigned int x, unsigned int z)
   float lz = m_hfieldSize;
 
   return Vec2f( (2*M_PI * m) / lx, (2*M_PI * n) / lz );
+}
+
 }

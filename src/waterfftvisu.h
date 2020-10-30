@@ -115,7 +115,7 @@ private:
   GLuint createFrameBufferObject(GLuint nbTextures, GLuint * textureToAttachID, GLint textureWidth, GLint textureHeight, GLenum * attachment);
   void buildCubeMap(QString xpos,QString xneg,QString ypos,QString yneg,QString zpos,QString zneg);
 
-  OceanSurface surf;
+  rx::OceanSurface surf;
 
 protected:
   void initializeGL();
