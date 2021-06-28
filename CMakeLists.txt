@@ -16,7 +16,6 @@ if(NOT WIN32)
   list(APPEND fftwater_includes ${FFTW3_INCLUDE_DIR})
 else()
   find_package(FFTW3 CONFIG REQUIRED)
-  list(APPEND fftwater_includes ${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include)
 endif()
 
 
