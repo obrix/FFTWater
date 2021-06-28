@@ -1,9 +1,10 @@
 #ifndef Vec2f_h
 #define Vec2f_h
 
+#include "FFTWaterEXPORT.hxx"
 //Minimalist Vec2f
 
-struct Vec2f
+struct FFTWater_EXPORT Vec2f
 {
   Vec2f();
 

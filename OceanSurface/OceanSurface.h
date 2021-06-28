@@ -1,15 +1,20 @@
 #ifndef OceanSurface_h
 #define OceanSurface_h
 
-#include <math.h>
+#define _USE_MATH_DEFINES
+#include <cmath>
+
+#include "FFTWaterEXPORT.hxx"
+
 #include <complex>
 #include <vector>
+#include <random>
 #include "Vec2f.h"
 
 namespace rx
 {
 
-class OceanSurface
+class FFTWater_EXPORT OceanSurface
 {
 public:
 

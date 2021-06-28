@@ -1,5 +1,4 @@
 #include "OceanSurface.h"
-#include "functions.h"
 #include <fftw3.h>
 #include <iostream>
 
