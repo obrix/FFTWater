@@ -1,6 +1,34 @@
 cmake_minimum_required(VERSION 3.2)
 project (FFTWater)
 
+set(FFTWater_MAJOR_VERSION 0)
+set(FFTWater_MINOR_VERSION 1)
+set(FFTWater_PATCH_VERSION 0)
+set(FFTWater_VERSION
+  ${FFTWater_MAJOR_VERSION}.${FFTWater_MINOR_VERSION}.${FFTWater_PATCH_VERSION})
+
+
+# Offer the user the choice of overriding the installation directories
+set(INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
+set(INSTALL_BIN_DIR bin CACHE PATH "Installation directory for executables")
+set(INSTALL_INCLUDE_DIR include CACHE PATH
+  "Installation directory for header files")
+if(WIN32 AND NOT CYGWIN)
+  set(DEF_INSTALL_CMAKE_DIR CMake)
+else()
+  set(DEF_INSTALL_CMAKE_DIR lib/CMake/FFTWater)
+endif()
+set(INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH
+  "Installation directory for CMake files")
+
+# Make relative paths absolute (needed later on)
+foreach(p LIB BIN INCLUDE CMAKE)
+set(var INSTALL_${p}_DIR)
+if(NOT IS_ABSOLUTE "${${var}}")
+  set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
+endif()
+endforeach()
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -28,10 +56,14 @@ endif(BUILD_GUI)
 
 include_directories(${fftwater_includes})
 
+# Ocean Water library
 add_library(OceanSurface SHARED
   ${CMAKE_SOURCE_DIR}/OceanSurface/Vec2f.cpp
   ${CMAKE_SOURCE_DIR}/OceanSurface/OceanSurface.cpp
 )
+
+set_target_properties(OceanSurface PROPERTIES
+  PUBLIC_HEADER "OceanSurface/Vec2f.h;OceanSurface/OceanSurface.h")
 
 if(NOT WIN32)
   target_link_libraries(OceanSurface ${FFTW3_LIBRARY})
@@ -39,7 +71,17 @@ else()
   target_link_libraries(OceanSurface PRIVATE FFTW3::fftw3)
 endif()
 
+install(TARGETS OceanSurface
+  EXPORT FFTWaterTargets
+  RUNTIME DESTINATION "${INSTALL_BIN_DIR}" COMPONENT bin
+  LIBRARY DESTINATION "${INSTALL_LIB_DIR}" COMPONENT shlib
+  ARCHIVE DESTINATION "${INSTALL_LIB_DIR}" COMPONENT lib
+  PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}/OceanSurface"
+    COMPONENT dev)
 
+#Package fftw3.dll with OceanSurface.dll 
+get_target_property(FFTW3_lib FFTW3::fftw3 IMPORTED_LOCATION_DEBUG)
+install(FILES ${FFTW3_lib} DESTINATION bin)
 
 if(BUILD_GUI) 
   add_executable(FFTWater
@@ -63,4 +105,36 @@ if(BUILD_GUI)
 
   file(COPY ${CMAKE_SOURCE_DIR}/Resources DESTINATION ${CMAKE_BINARY_DIR})
 endif(BUILD_GUI)
+
+# Add all targets to the build-tree export set
+export(TARGETS OceanSurface
+  FILE "${PROJECT_BINARY_DIR}/FFTWaterTargets.cmake")
+
+# Export the package for use from the build-tree
+# (this registers the build-tree with a global CMake-registry)
+export(PACKAGE FFTWater)
+
+# Create the FooBarConfig.cmake and FooBarConfigVersion files
+file(RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}"
+   "${INSTALL_INCLUDE_DIR}")
+
+# ... for the install tree
+set(CONF_INCLUDE_DIRS "\${FFWater_CMAKE_DIR}/${REL_INCLUDE_DIR}")
+configure_file(FFTWaterConfig.cmake.in
+  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/FFTWaterConfig.cmake" @ONLY)
+
+configure_file(FFTWaterConfigVersion.cmake.in
+"${PROJECT_BINARY_DIR}/FFTWaterConfigVersion.cmake" @ONLY)
+
+
+# Install the FFTWaterConfig.cmake and FFTWaterConfigVersion.cmake
+install(FILES
+  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/FFTWaterConfig.cmake"
+  "${PROJECT_BINARY_DIR}/FFTWaterConfigVersion.cmake"
+  DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT dev)
+
+# Install the export set for use with the install-tree
+install(EXPORT FFTWaterTargets DESTINATION
+  "${INSTALL_CMAKE_DIR}" COMPONENT dev)
+
 
