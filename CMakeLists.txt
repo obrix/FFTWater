@@ -63,7 +63,7 @@ add_library(OceanSurface SHARED
 )
 
 set_target_properties(OceanSurface PROPERTIES
-  PUBLIC_HEADER "OceanSurface/Vec2f.h;OceanSurface/OceanSurface.h")
+  PUBLIC_HEADER "OceanSurface/Vec2f.h;OceanSurface/OceanSurface.h;OceanSurface/OceanSurfaceEXPORT.h")
 
 if(NOT WIN32)
   target_link_libraries(OceanSurface ${FFTW3_LIBRARY})
@@ -119,7 +119,7 @@ file(RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}"
    "${INSTALL_INCLUDE_DIR}")
 
 # ... for the install tree
-set(CONF_INCLUDE_DIRS "\${FFWater_CMAKE_DIR}/${REL_INCLUDE_DIR}")
+set(CONF_INCLUDE_DIRS "\${FFTWater_CMAKE_DIR}/${REL_INCLUDE_DIR}")
 configure_file(FFTWaterConfig.cmake.in
   "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/FFTWaterConfig.cmake" @ONLY)
 

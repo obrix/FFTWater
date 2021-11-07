@@ -4,7 +4,7 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 
-#include "FFTWaterEXPORT.hxx"
+#include "OceanSurfaceEXPORT.h"
 
 #include <complex>
 #include <vector>
@@ -14,7 +14,7 @@
 namespace rx
 {
 
-class FFTWater_EXPORT OceanSurface
+class OceanSurface_EXPORT OceanSurface
 {
 public:
 

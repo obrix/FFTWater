@@ -1,10 +1,10 @@
 #ifndef Vec2f_h
 #define Vec2f_h
 
-#include "FFTWaterEXPORT.hxx"
+#include "OceanSurfaceEXPORT.h"
 //Minimalist Vec2f
 
-struct FFTWater_EXPORT Vec2f
+struct OceanSurface_EXPORT Vec2f
 {
   Vec2f();
 
